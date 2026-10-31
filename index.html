@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>صدای وارونه</title>
+<script src="script.js"></script>
+</head>
+<body data-state="idle">
+<main class="app">
+  <header>
+    <h1>صدای وارونه</h1>
+    <p class="sub">یک جمله بگو، بعد آن را از آخر به اول بشنو.</p>
+  </header>
+
+  <noscript><p class="notice">برای کار کردن برنامه باید جاوااسکریپت مرورگر فعال باشد.</p></noscript>
+
+  <section class="display" aria-label="نمایش موج صدا">
+    <div class="meta">
+      <span class="status" role="status" aria-live="polite"><span class="dot"></span><span id="status">آماده‌ی ضبط</span></span>
+      <span class="counter" dir="ltr"><span id="pos">00:00.0</span><span id="total" class="total"></span></span>
+    </div>
+    <canvas id="wave" role="img" aria-label="موج صدا"></canvas>
+  </section>
+
+  <section class="controls">
+    <div class="deck">
+      <svg class="reel" id="reel" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="96" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>
+        <circle cx="100" cy="100" r="62" fill="none" stroke="var(--line)" stroke-width="2"/>
+        <g fill="var(--bg)" stroke="var(--line)" stroke-width="2">
+          <circle cx="100" cy="21" r="11" fill="var(--rev)" stroke="none"/>
+          <circle cx="100" cy="21" r="11" transform="rotate(60 100 100)"/>
+          <circle cx="100" cy="21" r="11" transform="rotate(120 100 100)"/>
+          <circle cx="100" cy="21" r="11" transform="rotate(180 100 100)"/>
+          <circle cx="100" cy="21" r="11" transform="rotate(240 100 100)"/>
+          <circle cx="100" cy="21" r="11" transform="rotate(300 100 100)"/>
+        </g>
+      </svg>
+      <button class="rec" id="rec" type="button" aria-label="شروع ضبط">
+        <svg id="icMic" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5z" fill="currentColor"/>
+          <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg id="icStop" viewBox="0 0 24 24" aria-hidden="true" hidden>
+          <rect x="5.5" y="5.5" width="13" height="13" rx="3" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+    <p class="rec-label" id="recLabel">شروع ضبط</p>
+
+    <div class="row">
+      <button class="btn primary" id="revBtn" type="button" disabled>
+        <svg id="revPlay" viewBox="0 0 24 24" aria-hidden="true"><path transform="translate(24 0) scale(-1 1)" d="M7 4.8v14.4a1 1 0 0 0 1.5.86l12-7.2a1 1 0 0 0 0-1.72l-12-7.2A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg>
+        <svg id="revStop" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="5.5" y="5.5" width="13" height="13" rx="3" fill="currentColor"/></svg>
+        <span id="revText">پخش وارونه</span>
+      </button>
+      <button class="btn" id="fwdBtn" type="button" disabled>
+        <svg id="fwdPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l12-7.2a1 1 0 0 0 0-1.72l-12-7.2A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg>
+        <svg id="fwdStop" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="5.5" y="5.5" width="13" height="13" rx="3" fill="currentColor"/></svg>
+        <span id="fwdText">پخش عادی</span>
+      </button>
+    </div>
+
+    <p class="notice" id="notice" role="alert" hidden></p>
+
+    <div class="aux">
+      <button class="link" id="pick" type="button">یا یک فایل صوتی را انتخاب کن</button>
+      <input id="file" type="file" accept="audio/*" hidden>
+    </div>
+  </section>
+
+  <p class="foot">حداکثر مدت ضبط ۳ دقیقه است. صدا فقط روی دستگاه خودت پردازش می‌شود و جایی ارسال نمی‌شود.</p>
+</main>
+
+</body>
+</html>
