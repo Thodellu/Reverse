@@ -141,6 +141,9 @@ canvas { display: block; width: 100%; height: 120px; direction: ltr; }
 .btn.on:not(.primary) { border-color: var(--rev); color: var(--rev); }
 .btn.primary.on { box-shadow: 0 0 0 4px color-mix(in srgb, var(--rev) 28%, transparent); }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
+.row.even { grid-template-columns: 1fr 1fr; }
+.btn.sm { height: 50px; font-size: 15px; gap: 8px; }
+.btn.sm svg { width: 20px; height: 20px; }
 
 .notice {
   margin: 0;
@@ -198,6 +201,7 @@ button:focus-visible { outline: 3px solid var(--rev); outline-offset: 3px; }
     rec: $('rec'), recLabel: $('recLabel'), icMic: $('icMic'), icStop: $('icStop'),
     rev: $('revBtn'), revPlay: $('revPlay'), revStop: $('revStop'), revText: $('revText'),
     fwd: $('fwdBtn'), fwdPlay: $('fwdPlay'), fwdStop: $('fwdStop'), fwdText: $('fwdText'),
+    dlOrig: $('dlOrig'), dlRev: $('dlRev'),
     notice: $('notice'), pick: $('pick'), file: $('file')
   };
 
@@ -223,7 +227,7 @@ button:focus-visible { outline: 3px solid var(--rev); outline-offset: 3px; }
 
   let ctx = null, stream = null, micSrc = null, analyser = null, tbuf = null;
   let recorder = null, chunks = [];
-  let original = null, reversed = null, peaks = null;
+  let original = null, reversed = null, peaks = null, stampStr = '';
   let state = 'idle';
   let playNode = null, playBuf = null, playStart = 0, playToken = 0;
   let recStart = 0, liveBars = [], liveMax = 0, lastPush = 0;
@@ -316,12 +320,55 @@ button:focus-visible { outline: 3px solid var(--rev); outline-offset: 3px; }
       }
       original = buf;
       reversed = makeReversed(buf);
+      stampStr = makeStamp();
       peaks = null;
       setState('ready');
     } catch (e) {
       notice('decode');
       setState(original ? 'ready' : 'idle');
     }
+  }
+
+  /* ---------- download (WAV, 16-bit) ---------- */
+  function encodeWav(buf) {
+    const ch = buf.numberOfChannels, rate = buf.sampleRate, n = buf.length;
+    const bytes = n * ch * 2;
+    const ab = new ArrayBuffer(44 + bytes);
+    const v = new DataView(ab);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + bytes, true); str(8, 'WAVE');
+    str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * ch * 2, true);
+    v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+    str(36, 'data'); v.setUint32(40, bytes, true);
+    const data = [];
+    for (let c = 0; c < ch; c++) data.push(buf.getChannelData(c));
+    let o = 44;
+    for (let i = 0; i < n; i++) {
+      for (let c = 0; c < ch; c++) {
+        const s = Math.max(-1, Math.min(1, data[c][i]));
+        v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        o += 2;
+      }
+    }
+    return new Blob([ab], { type: 'audio/wav' });
+  }
+
+  function makeStamp() {
+    const d = new Date(), p = (x) => String(x).padStart(2, '0');
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+  }
+
+  function saveWav(buf, prefix) {
+    if (!buf) return;
+    const url = URL.createObjectURL(encodeWav(buf));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = prefix + '-' + stampStr + '.wav';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
   }
 
   /* ---------- recording ---------- */
@@ -532,6 +579,8 @@ button:focus-visible { outline: 3px solid var(--rev); outline-offset: 3px; }
     const canPlay = has && !recording && !busy;
     el.rev.disabled = !canPlay;
     el.fwd.disabled = !canPlay;
+    el.dlOrig.disabled = !canPlay;
+    el.dlRev.disabled = !canPlay;
     el.rev.classList.toggle('on', s === 'rev');
     el.fwd.classList.toggle('on', s === 'fwd');
     show(el.revPlay, s !== 'rev'); show(el.revStop, s === 'rev');
@@ -552,6 +601,8 @@ button:focus-visible { outline: 3px solid var(--rev); outline-offset: 3px; }
   el.rec.addEventListener('click', () => { if (state === 'recording') stopRecording(); else startRecording(); });
   el.rev.addEventListener('click', () => play('rev'));
   el.fwd.addEventListener('click', () => play('fwd'));
+  el.dlOrig.addEventListener('click', () => saveWav(original, 'recording'));
+  el.dlRev.addEventListener('click', () => saveWav(reversed, 'recording-reversed'));
   el.pick.addEventListener('click', () => el.file.click());
   el.file.addEventListener('change', () => {
     const f = el.file.files && el.file.files[0];
